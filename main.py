@@ -12,23 +12,49 @@ PAYPAL_API_URL = "https://api.sandbox.paypal.com/v1/oauth2/token"
 
 # دالة للحصول على Access Token من PayPal
 def get_paypal_token():
-    auth = (PAYPAL_CLIENT_ID, PAYPAL_SECRET)
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    data = {'grant_type': 'client_credentials'}
-    response = requests.post(PAYPAL_API_URL, auth=auth, data=data, headers=headers)
-    return response.json().get('access_token')
+    try:
+        auth = (PAYPAL_CLIENT_ID, PAYPAL_SECRET)
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        data = {'grant_type': 'client_credentials'}
+        response = requests.post(PAYPAL_API_URL, auth=auth, data=data, headers=headers)
+
+        # تحقق من استجابة PayPal
+        if response.status_code == 200:
+            return response.json().get('access_token')
+        else:
+            print(f"Error getting token: {response.text}")
+            return None
+    except Exception as e:
+        print(f"Error during PayPal token request: {e}")
+        return None
 
 # دالة للتحقق من الدفع باستخدام رقم المعاملة
 def verify_payment(transaction_id):
     token = get_paypal_token()
+    
+    if not token:
+        return False
+
     verify_url = f"https://api.sandbox.paypal.com/v1/payments/payment/{transaction_id}"
     headers = {'Authorization': f'Bearer {token}'}
-    response = requests.get(verify_url, headers=headers)
-    payment_data = response.json()
+    
+    try:
+        response = requests.get(verify_url, headers=headers)
 
-    if response.status_code == 200 and payment_data.get('state') == 'approved':
-        return True
-    return False
+        # تحقق من استجابة PayPal
+        if response.status_code == 200:
+            payment_data = response.json()
+            if payment_data.get('state') == 'approved':
+                return True
+            else:
+                print(f"Payment not approved: {payment_data}")
+                return False
+        else:
+            print(f"Error verifying payment: {response.text}")
+            return False
+    except Exception as e:
+        print(f"Error during PayPal payment verification: {e}")
+        return False
 
 # رسالة الترحيب مع زر الدفع
 async def welcome_message(update: Update, context: CallbackContext):
