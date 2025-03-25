@@ -46,6 +46,7 @@ async def after_payment(update: Update, context: CallbackContext):
     message = update.message.text
     transaction_id = message.strip()
 
+    # التحقق من رقم المعاملة عبر PayPal
     if verify_payment(transaction_id):
         await update.message.reply_text(
             "✅ تم التحقق من الدفع بنجاح! الخدمة مفعلة الآن."
@@ -59,8 +60,8 @@ async def after_payment(update: Update, context: CallbackContext):
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # إضافة المعالجات
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, after_payment))
+app.add_handler(CommandHandler("start", start))  # عندما يكتب المستخدم /start
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, after_payment))  # التحقق بعد إرسال الرقم
 
 # تشغيل البوت
 print("✅ Bot is running...")
