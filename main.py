@@ -1,6 +1,6 @@
 import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, ChatMemberHandler
 
 BOT_TOKEN = '7862184684:AAGPD3jKKDp6xUUBg5ohHtpsXYtMTpYAvoI'
 PAYMENT_LINK = 'https://www.paypal.com/ncp/payment/HY4D5R4427E4G'
@@ -31,13 +31,13 @@ def verify_payment(transaction_id):
     return False
 
 # رسالة الترحيب مع زر الدفع
-async def start(update: Update, context: CallbackContext):
+async def welcome_message(update: Update, context: CallbackContext):
     keyboard = [
         [InlineKeyboardButton("💳 اضغط هنا للدفع", url=PAYMENT_LINK)]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "👋 أهلاً وسهلاً! للدخول في الخدمة، برجاء الضغط على الزر والدفع أولاً، ثم أرسل صورة الدفع أو رقم المعاملة هنا.",
+        "👋 أهلاً وسهلاً! للدخول في الخدمة، برجاء الضغط على الزر والدفع أولاً، ثم أرسل رقم المعاملة هنا.",
         reply_markup=reply_markup
     )
 
@@ -46,7 +46,6 @@ async def after_payment(update: Update, context: CallbackContext):
     message = update.message.text
     transaction_id = message.strip()
 
-    # التحقق من رقم المعاملة عبر PayPal
     if verify_payment(transaction_id):
         await update.message.reply_text(
             "✅ تم التحقق من الدفع بنجاح! الخدمة مفعلة الآن."
@@ -59,9 +58,12 @@ async def after_payment(update: Update, context: CallbackContext):
 # إعداد البوت
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-# إضافة المعالجات
-app.add_handler(CommandHandler("start", start))  # عندما يكتب المستخدم /start
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, after_payment))  # التحقق بعد إرسال الرقم
+# إضافة معالجين:
+# إضافة معالج لرسالة الترحيب في البداية للمستخدمين الجدد
+app.add_handler(ChatMemberHandler(welcome_message, ChatMemberHandler.MY_CHAT_MEMBER))
+
+# إضافة معالج عند كتابة أي رسالة نصية للتحقق من رقم المعاملة
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, after_payment))
 
 # تشغيل البوت
 print("✅ Bot is running...")
